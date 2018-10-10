@@ -10,9 +10,9 @@
 
 // arguments for data-layer-helper thread
 struct bg_dl_args {
-	node_t*		head;
-	int			tsleep;
-	bool*		done;
+   node_t*     head;
+   int         tsleep;
+   bool*    done;
 };
 
 /* Public background thread interface */

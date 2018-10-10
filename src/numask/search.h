@@ -26,7 +26,7 @@ class search_layer {
 private:
 	inode_t* 		sentinel;
 	pthread_t 		helper;
-	int 			numa_zone;
+	int 			   numa_zone;
 	update_queue*	updates;
 public:
 	bool finished;
@@ -47,7 +47,7 @@ public:
 	void reset_sentinel(void);
 
 #ifdef ADDRESS_CHECKING
-	bool			index_ignore;
+	bool			   index_ignore;
 	volatile long 	bg_local_accesses;
 	volatile long 	bg_foreign_accesses;
 	volatile long 	ap_local_accesses;
@@ -57,7 +57,5 @@ public:
 	bg_stats_t shadow_stats;
 	void bg_stats(void);
 #endif
-
 };
-
 #endif

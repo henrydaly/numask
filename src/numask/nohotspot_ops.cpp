@@ -5,8 +5,8 @@
  *
  *
  * NUMASK changes: use search_layer object instead of set struct
- * 	++ on successful operation - set status field of node
- * 	++ address checking (if defined)
+ *    ++ on successful operation - set status field of node
+ *    ++ address checking (if defined)
  *
  */
 
@@ -73,29 +73,25 @@ static int sl_finish_insert(search_layer* sl, sl_key_t key, val_t val, node_t *n
 
 /**
  * sl_finish_contains() - contains skip list operation
- * @key 	 - the search key
- * @node	 - the left node from sl_do_operation()
+ * @key   - the search key
+ * @node  - the left node from sl_do_operation()
  * @node_val - @node value
  *
  * Returns 1 if the search key is present and 0 otherwise.
  */
 static int sl_finish_contains(sl_key_t key, node_t *node, val_t node_val)
 {
-        int result = 0;
-
-        assert(NULL != node);
-
-        if ((key == node->key) && (NULL != node_val))
-                result = 1;
-
-        return result;
+   int result = 0;
+   assert(NULL != node);
+   if ((key == node->key) && (NULL != node_val)) result = 1;
+   return result;
 }
 
 /**
  * sl_finish_delete() - delete skip list operation
- * @sl		 - the search layer
- * @key		 - the search key
- * @node	 - the left node from sl_do_operation()
+ * @sl       - the search layer
+ * @key      - the search key
+ * @node  - the left node from sl_do_operation()
  * @node_val - @node value
  *
  * Returns 1 on success, 0 if the search key is not present,
@@ -104,44 +100,41 @@ static int sl_finish_contains(sl_key_t key, node_t *node, val_t node_val)
  */
 static int sl_finish_delete(search_layer* sl, sl_key_t key, node_t *node, val_t node_val)
 {
-        int result = -1;
+   int result = -1;
+   assert(NULL != node);
 
-        assert(NULL != node);
-
-        if (node->key != key)
-                result = 0;
-        else {
-                if (NULL != node_val) {
-                        /* loop until we or someone else deletes */
-                        while (1) {
-                                node_val = node->val;
-                                if (NULL == node_val || node == node_val) {
-                                        result = 0;
-                                        break;
-                                }
-                                else if (CAS(&node->val, node_val, NULL)) {
-                                	node->fresh = true;
-                                	result = 1;
-                                	break;
-                                }
-                        }
-                } else {
-                        /* Already logically deleted */
-                        result = 0;
-                }
-        }
-
-        return result;
+   if (node->key != key) {
+      result = 0; 
+   } else {
+      if (NULL != node_val) {
+         /* loop until we or someone else deletes */
+         while (1) {
+            node_val = node->val;
+            if (NULL == node_val || node == node_val) {
+               result = 0;
+               break;
+            } else if (CAS(&node->val, node_val, NULL)) {
+               node->fresh = true;
+               result = 1;
+               break;
+            }
+         }
+      } else {
+         /* Already logically deleted */
+         result = 0;
+      }
+   }
+   return result;
 }
 
 /**
  * sl_finish_insert() - insert skip list operation
- * @sl		 - the search layer
- * @key		 - the search key
- * @val		 - the search value
- * @node	 - the left node from sl_do_operation()
+ * @sl       - the search layer
+ * @key      - the search key
+ * @val      - the search value
+ * @node  - the left node from sl_do_operation()
  * @node_val - @node value
- * @next	 - the right node from sl_do_operation()
+ * @next  - the right node from sl_do_operation()
  *
  * Returns:
  * > 1 if @key is present in the set and the corresponding node
@@ -156,31 +149,26 @@ static int sl_finish_delete(search_layer* sl, sl_key_t key, node_t *node, val_t 
  */
 static int sl_finish_insert(search_layer* sl, sl_key_t key, val_t val, node_t *node, val_t node_val, node_t *next)
 {
-        int result = -1;
-        node_t *newNode;
-        if (node->key == key) {
-			if (NULL == node_val) {
-				if (CAS(&node->val, node_val, val)) {
-					result = 1;
-					node->fresh = true;
-				}
-			} else {
-				result = 0;
-			}
-        } else {
-			newNode = node_new(key, val, node, next);
-			if (CAS(&node->next, next, newNode)) {
-				assert (node->next != node);
-				if (NULL != next)
-					next->prev = newNode; /* safe */
-
-				result = 1;
-			} else {
-				node_delete(newNode);
-			}
-        }
-
-        return result;
+   int result = -1;
+   node_t *newNode;
+   if (node->key == key) {
+      if (NULL == node_val) {
+         if (CAS(&node->val, node_val, val)) {
+            result = 1;
+            node->fresh = true;
+         }
+      } else { result = 0; }
+   } else {
+      newNode = node_new(key, val, node, next);
+      if (CAS(&node->next, next, newNode)) {
+         assert (node->next != node);
+         if (NULL != next) { next->prev = newNode; } /* safe */
+         result = 1;
+      } else {
+         node_delete(newNode);
+      }
+   }
+   return result;
 }
 
 
@@ -189,88 +177,85 @@ static int sl_finish_insert(search_layer* sl, sl_key_t key, val_t val, node_t *n
 
 /**
  * sl_do_operation() - traverse index layer
- * @sl	   - the search layer
+ * @sl      - the search layer
  * @optype - the type of operation this is
- * @key	   - the search key
- * @val	   - the seach value
+ * @key     - the search key
+ * @val     - the seach value
  *
  * Returns the result of the operation.
  * Note: @val can be NULL.
  */
 int sl_do_operation(search_layer *sl, sl_optype_t optype, sl_key_t key, val_t val)
 {
-        inode_t *item = NULL, *next_item = NULL;
-        node_t* node = NULL;
-        node_t* next = NULL;
-		val_t node_val = NULL, next_val = NULL;
-        int result = 0;
+   inode_t *item = NULL, *next_item = NULL;
+   node_t* node = NULL;
+   node_t* next = NULL;
+   val_t node_val = NULL, next_val = NULL;
+   int result = 0;
 
-        assert(NULL != sl);
-        /* find an entry-point to the node-level */
-        item = sl->get_sentinel();
-        int this_node = sl->get_zone();
+   assert(NULL != sl);
+   /* find an entry-point to the node-level */
+   item = sl->get_sentinel();
+   int this_node = sl->get_zone();
 #ifdef ADDRESS_CHECKING
-		zone_access_check(this_node, item, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
+   zone_access_check(this_node, item, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
 #endif
-        while (1) {
-                next_item = item->right;
+   while (1) {
+      next_item = item->right;
 #ifdef ADDRESS_CHECKING
-		zone_access_check(this_node, next_item, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
+      zone_access_check(this_node, next_item, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
 #endif
-                if (NULL == next_item || next_item->key > key) {
-                        next_item = item->down;
+      if (NULL == next_item || next_item->key > key) {
+         next_item = item->down;
 #ifdef ADDRESS_CHECKING
-		zone_access_check(this_node, next_item, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
+         zone_access_check(this_node, next_item, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
 #endif
-                        if (NULL == next_item) {
-                        	node = item->intermed->node;
+         if (NULL == next_item) {
+            node = item->intermed->node;
 #ifdef ADDRESS_CHECKING
-		zone_access_check(this_node, node, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
+            zone_access_check(this_node, node, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
 #endif
-							break;
-                        }
-                } else if (next_item->key == key) {
-                	node = item->intermed->node;
+            break;
+         }
+      } else if (next_item->key == key) {
+         node = item->intermed->node;
 #ifdef ADDRESS_CHECKING
-		zone_access_check(this_node, node, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
+         zone_access_check(this_node, node, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
 #endif
-					break;
-                }
-                item = next_item;
-        }
-        while (1) {
-        		while (node == (node_val = node->val)) {
-        				node = node->prev;
+         break;
+      }
+      item = next_item;
+   }
+   while (1) {
+      while (node == (node_val = node->val)) {
+         node = node->prev;
 #ifdef ADDRESS_CHECKING
-		zone_access_check(this_node, node, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
+         zone_access_check(this_node, node, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
 #endif
-        		}
-        		next = node->next;
+      }
+      next = node->next;
 #ifdef ADDRESS_CHECKING
-		zone_access_check(this_node, next, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
+      zone_access_check(this_node, next, &sl->ap_local_accesses, &sl->ap_foreign_accesses, false);
 #endif
-				if(NULL != next) {
-					next_val = next->val;
-					if((node_t*)next_val == next) {
-						bg_remove(node, next);
-						continue;
-					}
-				}
-        		if (NULL == next || next->key > key) {
-        				if (CONTAINS == optype)
-        					result = sl_finish_contains(key, node, node_val);
-        				else if (DELETE == optype)
-        					result = sl_finish_delete(sl, key, node, node_val);
-        				else if (INSERT == optype)
-        					result = sl_finish_insert(sl, key, val, node, node_val, next);
-
-        				if (-1 != result) {
-        					break;
-        				}
-        				continue;
-        		}
-        		node = next;
-        	}
-        	return result;
+      if(NULL != next) {
+         next_val = next->val;
+         if((node_t*)next_val == next) {
+            bg_remove(node, next);
+            continue;
+         }
+      }
+      if (NULL == next || next->key > key) {
+         if (CONTAINS == optype) {
+            result = sl_finish_contains(key, node, node_val);
+         } else if (DELETE == optype) {
+            result = sl_finish_delete(sl, key, node, node_val);
+         } else if (INSERT == optype) {
+            result = sl_finish_insert(sl, key, val, node, node_val, next);
+         }
+         if (-1 != result) break;
+         continue;
+      }
+      node = next;
+   }
+   return result;
 }
-

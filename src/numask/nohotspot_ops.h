@@ -4,7 +4,6 @@
  *
  * Author: Ian Dick, 2013.
  *
- *
  * NUMASK changes: use search_layer object instead of set struct
  */
 #ifndef NOHOTSPOT_OPS_H_
