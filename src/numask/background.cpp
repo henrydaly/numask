@@ -240,9 +240,8 @@ static int bg_raise_ilevel(inode_t *iprev, inode_t *iprev_tall, int height, int 
          /* skip deleted nodes */
          iprev->right = inext;
          if (NULL == inext) break;
-            index = inext;
-            inext = inext->right;
-         }
+         index = inext;
+         inext = inext->right;
       }
       if (NULL == inext) break;
       if (((iprev->intermed->level <= height) &&
