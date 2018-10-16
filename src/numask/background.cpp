@@ -39,10 +39,10 @@
  */
 void reset_intermediate_levels(search_layer* sl) {
    mnode_t* node = sl->get_sentinel()->intermed;
-   node->level = 1;
+   node->level = node->node->level = 1;
    mnode_t* next = node->next;
    while(next != NULL) {
-      next->level = 0;
+      next->level = next->node->level = 0;
       next = next->next;
    }
 }
@@ -286,9 +286,7 @@ void bg_lower_ilevel(inode_t *new_low, int zone)
    while (NULL != new_low) {
       new_low->down = NULL;
       --new_low->intermed->level;
-      if(new_low->intermed->node->level < new_low->intermed->level) {
-         new_low->intermed->node->level = new_low->intermed->level;
-      }
+      if(new_low->intermed->node->level > 0) { --new_low->intermed->node->level; }
       new_low = new_low->right;
    }
 
